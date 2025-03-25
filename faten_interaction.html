@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تفاعل مع شاشة الحاسوب</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    #box {
+      width: 100px;
+      height: 100px;
+      background-color: red;
+      position: absolute;
+      top: 100px;
+      left: 100px;
+      transition: 0.5s ease;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    #canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>فاتن تتفاعل مع شاشة الحاسوب</h1>
+  <div id="box"></div>
+  <button onclick="startCapture()">ابدأ التقاط الشاشة</button>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const box = document.getElementById('box');
+    const button = document.querySelector('button');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // دالة لتحريك العنصر
+    const moveBox = (direction) => {
+      let currentPosition = parseInt(box.style.left || 0);
+      if (direction === 'left') {
+        box.style.left = currentPosition - 50 + 'px';
+      } else if (direction === 'right') {
+        box.style.left = currentPosition + 50 + 'px';
+      }
+    };
+
+    // دالة للتفاعل الصوتي (التعرف على الصوت)
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ar-SA'; // تحديد اللغة العربية
+
+    // بدء الاستماع
+    function startListening() {
+      recognition.start();
+    }
+
+    // معالجة نتيجة التعرف على الصوت
+    recognition.onresult = (event) => {
+      const spokenText = event.results[0][0].transcript;
+      console.log("تم التعرف على النص: " + spokenText);
+
+      if (spokenText.includes("يسار")) {
+        moveBox('left');
+        speakResponse("فاتن حركت لي اليسار");
+      } else if (spokenText.includes("يمين")) {
+        moveBox('right');
+        speakResponse("فاتن حركت لي اليمين");
+      } else {
+        speakResponse("فاتن ما فهمت، حاول مرة ثانية.");
+      }
+    };
+
+    // الدالة للرد الصوتي باللهجة العراقية
+    function speakResponse(text) {
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ar-SA'; // يمكن تعديلها حسب الحاجة
+      synth.speak(utterance);
+    }
+
+    // معالجة الأخطاء
+    recognition.onerror = (event) => {
+      console.log("حدث خطأ أثناء التعرف على الصوت: " + event.error);
+      speakResponse("صار عندي خطأ يا حبيبي بالتعرف على الصوت.");
+    };
+
+    // التفاعل مع الزر لبدء الاستماع
+    button.addEventListener('click', startListening);
+
+    // دالة لالتقاط محتوى الشاشة
+    async function startCapture() {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const videoTrack = stream.getVideoTracks()[0];
+        const imageCapture = new ImageCapture(videoTrack);
+        
+        // التقط صورة من الشاشة
+        const imageBitmap = await imageCapture.grabFrame();
+        canvas.width = imageBitmap.width;
+        canvas.height = imageBitmap.height;
+        ctx.drawImage(imageBitmap, 0, 0);
+
+        // يمكن هنا إضافة معالجة لتحليل الصورة والتفاعل مع النص أو الألوان
+        speakResponse("فاتن شاهدة محتوى الشاشة");
+        
+        // إغلاق الاتصال بعد التقاط الصورة
+        videoTrack.stop();
+      } catch (err) {
+        console.error("حدث خطأ في التقاط الشاشة: ", err);
+        speakResponse("حدث خطأ في التقاط الشاشة.");
+      }
+    }
+  </script>
+
+</body>
+</html>
